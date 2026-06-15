@@ -245,6 +245,7 @@
     
 <section class="quizPanel" id="multiQuizPanel">
   <h2>카테고리별 4지선다 퀴즈</h2>
+  <div class="small" id="quizGuide">카테고리에 맞는 퀴즈 유형만 자동으로 보여줘.</div>
   <div class="quizTop">
     <select id="quizCategory"></select>
     <select id="quizType">
@@ -808,6 +809,179 @@ if($('resetMultiQuiz')) $('resetMultiQuiz').onclick = () => {
   $('multiResult').textContent = '점수 초기화됨';
 };
 updateMultiScore();
+
+
+// v7 퀴즈 수정: 카테고리별 가능한 문제 유형만 제공
+const kanaOnlyCategories = ['부사 및 기타'];
+const katakanaCategories = ['가타카나어'];
+const normalQuizTypes = [
+  ['j-r', '한자 → 히라가나'],
+  ['r-j', '히라가나 → 한자'],
+  ['j-k', '한자 → 뜻'],
+  ['k-j', '뜻 → 한자']
+];
+const kanaOnlyQuizTypes = [
+  ['j-k', '히라가나/표기 → 뜻']
+];
+const katakanaQuizTypes = [
+  ['j-k', '가타카나 → 뜻']
+];
+
+function getActualQuizCategory(){
+  let cat = $('quizCategory').value;
+  if(cat === '현재 카테고리') cat = $('category').value;
+  return cat;
+}
+function isKatakanaWord(w){ return /^[\u30a0-\u30ffー・]+$/.test(w.j); }
+function hasKanjiWord(w){ return /[\u4e00-\u9faf]/.test(w.j); }
+function allowedTypesByCategory(cat){
+  if(katakanaCategories.includes(cat)) return katakanaQuizTypes;
+  if(kanaOnlyCategories.includes(cat)) return kanaOnlyQuizTypes;
+  return normalQuizTypes;
+}
+function refreshQuizTypes(){
+  if(!$('quizType')) return;
+  const cat = getActualQuizCategory();
+  const allowed = allowedTypesByCategory(cat);
+  const prev = $('quizType').value;
+  $('quizType').innerHTML = allowed.map(([v,t]) => `<option value="${v}">${t}</option>`).join('');
+  if(allowed.some(([v]) => v === prev)) $('quizType').value = prev;
+
+  if($('quizGuide')){
+    if(katakanaCategories.includes(cat)) $('quizGuide').textContent = '가타카나어는 가타카나를 보고 한국어 뜻을 고르는 문제만 출제돼.';
+    else if(kanaOnlyCategories.includes(cat)) $('quizGuide').textContent = '부사 및 기타는 히라가나/표기를 보고 한국어 뜻을 고르는 문제만 출제돼.';
+    else $('quizGuide').textContent = '이 카테고리는 한자↔히라가나, 한자↔뜻 문제를 풀 수 있어.';
+  }
+}
+function getQuizPool(){
+  let cat = getActualQuizCategory();
+  let arr = words.filter(w => cat === '전체' || w.c === cat);
+  const type = $('quizType').value;
+
+  if(katakanaCategories.includes(cat)){
+    arr = arr.filter(isKatakanaWord);
+  }else if(kanaOnlyCategories.includes(cat)){
+    arr = arr.filter(w => w.c === cat);
+  }else{
+    arr = arr.filter(hasKanjiWord);
+  }
+
+  if(arr.length < 4){
+    const sameCat = words.filter(w => cat === '전체' || w.c === cat);
+    if(sameCat.length >= 4) arr = sameCat;
+  }
+  return arr.length >= 4 ? arr : words.filter(hasKanjiWord);
+}
+function pickQuestionText(w,type){
+  const cat = getActualQuizCategory();
+  if(katakanaCategories.includes(cat)) return w.j;
+  if(kanaOnlyCategories.includes(cat)) return w.j;
+  if(type === 'j-r') return w.j;
+  if(type === 'r-j') return w.r;
+  if(type === 'j-k') return w.j;
+  if(type === 'k-j') return w.k;
+  return w.j;
+}
+function pickAnswerText(w,type){
+  const cat = getActualQuizCategory();
+  if(katakanaCategories.includes(cat)) return w.k;
+  if(kanaOnlyCategories.includes(cat)) return w.k;
+  if(type === 'j-r') return w.r;
+  if(type === 'r-j') return w.j;
+  if(type === 'j-k') return w.k;
+  if(type === 'k-j') return w.j;
+  return w.k;
+}
+function makeChoices(pool, answerWord, type){
+  const answer = pickAnswerText(answerWord,type);
+  const answerNorm = normText(answer);
+  let candidates = pool
+    .filter(w => key(w) !== key(answerWord))
+    .map(w => pickAnswerText(w,type))
+    .filter(x => x && normText(x) !== answerNorm);
+
+  const unique = [];
+  for(const c of shuffleArray(candidates)){
+    if(!unique.some(x => normText(x) === normText(c))) unique.push(c);
+    if(unique.length >= 3) break;
+  }
+  if(unique.length < 3){
+    for(const w of shuffleArray(words)){
+      const c = pickAnswerText(w,type);
+      if(c && normText(c) !== answerNorm && !unique.some(x => normText(x) === normText(c))){
+        unique.push(c);
+      }
+      if(unique.length >= 3) break;
+    }
+  }
+  return shuffleArray([answer, ...unique.slice(0,3)]);
+}
+function newMultiQuestion(){
+  refreshQuizTypes();
+  const pool = getQuizPool();
+  const type = $('quizType').value;
+  mqCurrent = pool[Math.floor(Math.random()*pool.length)];
+  mqAnswer = pickAnswerText(mqCurrent,type);
+  mqAnswered = false;
+
+  $('multiQuestion').textContent = pickQuestionText(mqCurrent,type);
+  $('multiResult').textContent = '';
+  const choices = makeChoices(pool, mqCurrent, type);
+  $('choiceGrid').innerHTML = choices.map(c => `<button class="choiceBtn" data-choice="${String(c).replaceAll('"','&quot;')}">${c}</button>`).join('');
+
+  document.querySelectorAll('.choiceBtn').forEach(btn => {
+    btn.onclick = () => chooseMultiAnswer(btn);
+  });
+  updateMultiScore();
+}
+function chooseMultiAnswer(btn){
+  if(mqAnswered) return;
+  mqAnswered = true;
+  const selected = btn.dataset.choice;
+  const ok = normText(selected) === normText(mqAnswer);
+
+  document.querySelectorAll('.choiceBtn').forEach(b => {
+    if(normText(b.dataset.choice) === normText(mqAnswer)) b.classList.add('correct');
+  });
+
+  if(ok){
+    mqRight++;
+    $('multiResult').textContent = '정답!';
+    $('multiResult').style.color = '#19a974';
+    addUnique(done, key(mqCurrent));
+    wrong = wrong.filter(x => x !== key(mqCurrent));
+  }else{
+    mqWrong++;
+    btn.classList.add('wrong');
+    $('multiResult').textContent = `오답! 정답: ${mqAnswer} / ${mqCurrent.j}（${mqCurrent.r}） = ${mqCurrent.k}`;
+    $('multiResult').style.color = '#ff4b5c';
+    addUnique(wrong, key(mqCurrent));
+  }
+  localStorage.setItem('n3_mq_right', mqRight);
+  localStorage.setItem('n3_mq_wrong', mqWrong);
+  save(); updateStats(); renderList(); updateMultiScore();
+}
+if($('quizCategory')) $('quizCategory').onchange = () => {
+  refreshQuizTypes();
+  $('multiQuestion').textContent = '퀴즈 시작을 눌러줘';
+  $('choiceGrid').innerHTML = '';
+  $('multiResult').textContent = '';
+};
+if($('category')) {
+  const oldCategoryChangeForQuiz = $('category').onchange;
+  $('category').onchange = (e) => {
+    if(typeof oldCategoryChangeForQuiz === 'function') oldCategoryChangeForQuiz(e);
+    refreshQuizTypes();
+  };
+}
+if($('quizType')) $('quizType').onchange = () => {
+  $('multiQuestion').textContent = '퀴즈 시작을 눌러줘';
+  $('choiceGrid').innerHTML = '';
+  $('multiResult').textContent = '';
+};
+if($('startMultiQuiz')) $('startMultiQuiz').onclick = newMultiQuestion;
+if($('nextMultiQuiz')) $('nextMultiQuiz').onclick = newMultiQuestion;
+refreshQuizTypes();
 
 render();
 </script>
