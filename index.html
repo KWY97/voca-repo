@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>N3 Chapter 5 단어 암기장</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: #f6f7fb;
+      color: #222;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #20233a;
+      color: white;
+      padding: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+    }
+    h1 { margin: 0 0 10px; font-size: 22px; }
+    .topbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button, select, input {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 15px;
+      background: white;
+    }
+    button { cursor: pointer; font-weight: 700; }
+    button:hover { filter: brightness(.96); }
+    .primary { background: #4b5cff; color: white; border: none; }
+    .danger { background: #ff4b5c; color: white; border: none; }
+    .good { background: #19a974; color: white; border: none; }
+    .ghost { background: #eef0ff; color: #20233a; border: none; }
+    main { max-width: 980px; margin: 18px auto; padding: 0 14px 40px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      background: white;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+      text-align: center;
+    }
+    .stat b { display: block; font-size: 22px; margin-top: 4px; color: #4b5cff; }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.08);
+      margin-bottom: 16px;
+    }
+    .mode-label { color: #666; font-size: 14px; margin-bottom: 8px; }
+    .jp { font-size: 44px; font-weight: 800; line-height: 1.2; text-align: center; margin: 10px 0 4px; }
+    .kana { font-size: 20px; text-align: center; color: #666; min-height: 28px; }
+    .kana.hidden, .reading.hidden { display: none; }
+    .kanjiHelp {
+      display: none;
+      margin: 14px auto 0;
+      max-width: 760px;
+      background: #fff9e8;
+      border: 1px solid #f0d58a;
+      border-radius: 14px;
+      padding: 14px;
+      line-height: 1.6;
+    }
+    .kanjiHelp b { font-size: 18px; }
+    .kanjiHelp .piece { margin: 8px 0; padding: 8px; background: rgba(255,255,255,.65); border-radius: 10px; }
+    .answer {
+      margin: 20px auto 10px;
+      padding: 18px;
+      border-radius: 14px;
+      background: #f2f3ff;
+      text-align: center;
+      font-size: 26px;
+      font-weight: 800;
+      min-height: 66px;
+      display: none;
+    }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+    .quizbox { display: none; max-width: 560px; margin: 16px auto 0; }
+    .quizbox input { width: 100%; padding: 14px; font-size: 18px; }
+    .judge { text-align: center; min-height: 30px; font-size: 18px; font-weight: 800; margin-top: 10px; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 10px; }
+    .tab { background: white; border: 1px solid #ddd; }
+    .tab.active { background: #20233a; color: white; }
+    .list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .word {
+      background: white;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+      border-left: 5px solid #ddd;
+    }
+    .word.wrong { border-left-color: #ff4b5c; }
+    .word.done { border-left-color: #19a974; }
+    .word .kanji { font-size: 23px; font-weight: 800; }
+    .word .reading { color: #666; margin: 3px 0; }
+    .word .meaning { font-weight: 700; }
+    .small { font-size: 13px; color: #777; }
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .jp { font-size: 38px; }
+      header { position: static; }
+    }
+  
+.cinema-mode header,
+.cinema-mode .stats,
+.cinema-mode .tabs,
+.cinema-mode #wordList,
+.cinema-mode #kanjiHelp,
+.cinema-mode .mode-label,
+.cinema-mode #showBtn,
+.cinema-mode #kanaBtn,
+.cinema-mode #kanjiBtn,
+.cinema-mode #prevBtn,
+.cinema-mode #nextBtn,
+.cinema-mode #quizBtn{
+ display:none !important;
+}
+.cinema-mode .card{
+ max-width:100%;
+ min-height:85vh;
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+}
+.cinema-mode .jp{font-size:90px;}
+.cinema-mode .kana{font-size:48px;}
+.cinema-mode .answer{font-size:56px;display:block;}
+
+
+.autoControls{display:none;width:100%;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.autoControls label{display:inline-flex;align-items:center;gap:6px;font-weight:800;background:#f2f3ff;border-radius:12px;padding:8px 10px}
+.autoControls input{width:76px;padding:8px;text-align:center}
+.cinema-mode header,.cinema-mode .stats,.cinema-mode .tabs,.cinema-mode #wordList,.cinema-mode #kanjiHelp,.cinema-mode .mode-label,.cinema-mode #showBtn,.cinema-mode #kanaBtn,.cinema-mode #kanjiBtn,.cinema-mode #prevBtn,.cinema-mode #nextBtn{display:none!important}
+.cinema-mode .autoControls{display:flex!important}
+.cinema-mode main{max-width:100%;margin:0;padding:0}
+.cinema-mode .card{max-width:100%;min-height:100vh;margin:0;border-radius:0;display:flex;flex-direction:column;justify-content:center}
+.cinema-mode .jp{font-size:92px}
+.cinema-mode .kana{font-size:48px}
+.cinema-mode .answer{font-size:56px}
+.cinema-mode .buttons{margin-top:24px}
+
+
+.quizPanel{
+  background:white;
+  border-radius:20px;
+  padding:20px;
+  box-shadow:0 4px 18px rgba(0,0,0,.08);
+  margin:16px 0;
+}
+.quizTop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.quizQuestion{
+  text-align:center;
+  font-size:44px;
+  font-weight:900;
+  margin:20px 0;
+  padding:22px;
+  background:#f2f3ff;
+  border-radius:18px;
+}
+.choiceGrid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:10px;
+}
+.choiceBtn{
+  padding:18px;
+  font-size:20px;
+  border-radius:14px;
+  background:#fff;
+  border:2px solid #ddd;
+  font-weight:900;
+}
+.choiceBtn.correct{background:#e2f8ed;border-color:#19a974;color:#08784f}
+.choiceBtn.wrong{background:#ffe5e8;border-color:#ff4b5c;color:#b30019}
+.quizResult{font-size:18px;font-weight:900;text-align:center;min-height:28px;margin-top:12px}
+.quizHidden{display:none}
+@media(max-width:640px){.choiceGrid{grid-template-columns:1fr}.quizQuestion{font-size:36px}}
+.cinema-mode .quizPanel{display:none!important}
+
+</style>
+</head>
+<body>
+  <header>
+    <h1>급소공략 N3 CHAPTER 5 단어 암기장</h1>
+    <div class="topbar">
+      <select id="category"></select>
+      <select id="studyMode">
+        <option value="jp-ko">일본어 → 뜻</option>
+        <option value="ko-jp">뜻 → 일본어</option>
+        <option value="kana-ko">요미가나 → 뜻</option>
+      </select>
+      <button class="ghost" id="shuffleBtn">섞기</button>
+      <button class="ghost" id="wrongOnlyBtn">오답만</button>
+      <button class="danger" id="resetBtn">기록 초기화</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="stats">
+      <div class="stat">전체 단어<b id="totalCount">0</b></div>
+      <div class="stat">회독 완료<b id="doneCount">0</b></div>
+      <div class="stat">오답 단어<b id="wrongCount">0</b></div>
+      <div class="stat">현재 위치<b id="posCount">0</b></div>
+    </section>
+
+    <section class="card">
+      <div class="mode-label" id="cardInfo"></div>
+      <div class="jp" id="front"></div>
+      <div class="kana" id="sub"></div>
+      <div class="answer" id="answer"></div>
+      <div class="kanjiHelp" id="kanjiHelp"></div>
+      </div>
+      <div class="buttons">
+        <button class="primary" id="showBtn">정답 보기</button>
+        <button class="ghost" id="kanaBtn">히라가나 보기</button>
+        <button class="ghost" id="kanjiBtn">한자 풀이</button>
+        <button class="good" id="knowBtn">알았다 / 회독완료</button>
+        <button class="danger" id="wrongBtn">모름 / 오답추가</button>
+<button class="primary" id="cinemaBtn">🎬 집중모드</button>
+        
+        <button id="prevBtn">← 이전</button>
+        <button id="nextBtn">다음 →</button><div class="autoControls" id="autoControls">
+          <button class="good" id="autoBtn">자동학습 시작</button>
+          <label>단어 표시 간격(초) <input id="showSec" type="number" value="1" min="0.5" step="0.5"></label>
+          <label>문제 사이 간격(초) <input id="waitSec" type="number" value="2" min="0.5" step="0.5"></label>
+        </div>
+      </div>
+    </section>
+
+    
+<section class="quizPanel" id="multiQuizPanel">
+  <h2>카테고리별 4지선다 퀴즈</h2>
+  <div class="quizTop">
+    <select id="quizCategory"></select>
+    <select id="quizType">
+      <option value="j-r">한자 → 히라가나</option>
+      <option value="r-j">히라가나 → 한자</option>
+      <option value="j-k">한자 → 뜻</option>
+      <option value="k-j">뜻 → 한자</option>
+    </select>
+    <button class="primary" id="startMultiQuiz">퀴즈 시작</button>
+    <button class="ghost" id="nextMultiQuiz">다음 문제</button>
+    <button class="danger" id="resetMultiQuiz">점수 초기화</button>
+  </div>
+  <div class="small" id="quizScore">정답 0 / 오답 0</div>
+  <div class="quizQuestion" id="multiQuestion">퀴즈 시작을 눌러줘</div>
+  <div class="choiceGrid" id="choiceGrid"></div>
+  <div class="quizResult" id="multiResult"></div>
+</section>
+
+    <div class="tabs" id="tabs"></div>
+    <section class="list" id="wordList"></section>
+  </main>
+
+<script>
+const words = [
+  // 음독 명사
+  {c:'음독 명사', j:'指示', r:'しじ', k:'지시'}, {c:'음독 명사', j:'自身', r:'じしん', k:'자신, 자기'}, {c:'음독 명사', j:'時代', r:'じだい', k:'시대'}, {c:'음독 명사', j:'実力', r:'じつりょく', k:'실력'},
+  {c:'음독 명사', j:'市民', r:'しみん', k:'시민'}, {c:'음독 명사', j:'社長', r:'しゃちょう', k:'사장'}, {c:'음독 명사', j:'渋滞', r:'じゅうたい', k:'정체'}, {c:'음독 명사', j:'宿題', r:'しゅくだい', k:'숙제'},
+  {c:'음독 명사', j:'出張', r:'しゅっちょう', k:'출장'}, {c:'음독 명사', j:'紹介', r:'しょうかい', k:'소개'}, {c:'음독 명사', j:'小説', r:'しょうせつ', k:'소설'}, {c:'음독 명사', j:'商品', r:'しょうひん', k:'상품'},
+  {c:'음독 명사', j:'植物', r:'しょくぶつ', k:'식물'}, {c:'음독 명사', j:'進学', r:'しんがく', k:'진학'}, {c:'음독 명사', j:'心配', r:'しんぱい', k:'걱정'},
+  {c:'음독 명사', j:'辞書', r:'じしょ', k:'사전'}, {c:'음독 명사', j:'地震', r:'じしん', k:'지진'}, {c:'음독 명사', j:'失業', r:'しつぎょう', k:'실업'}, {c:'음독 명사', j:'辞典', r:'じてん', k:'사전'},
+  {c:'음독 명사', j:'社会', r:'しゃかい', k:'사회'}, {c:'음독 명사', j:'邪魔', r:'じゃま', k:'방해'}, {c:'음독 명사', j:'集中', r:'しゅうちゅう', k:'집중'}, {c:'음독 명사', j:'宿泊', r:'しゅくはく', k:'숙박'},
+  {c:'음독 명사', j:'出発', r:'しゅっぱつ', k:'출발'}, {c:'음독 명사', j:'正月', r:'しょうがつ', k:'정월, 설날'}, {c:'음독 명사', j:'招待', r:'しょうたい', k:'초대'}, {c:'음독 명사', j:'将来', r:'しょうらい', k:'장래'},
+  {c:'음독 명사', j:'食料品', r:'しょくりょうひん', k:'식료품'}, {c:'음독 명사', j:'人口', r:'じんこう', k:'인구'}, {c:'음독 명사', j:'新聞', r:'しんぶん', k:'신문'},
+  {c:'음독 명사', j:'事情', r:'じじょう', k:'사정'}, {c:'음독 명사', j:'姿勢', r:'しせい', k:'자세'}, {c:'음독 명사', j:'失敗', r:'しっぱい', k:'실패'}, {c:'음독 명사', j:'自転車', r:'じてんしゃ', k:'자전거'},
+  {c:'음독 명사', j:'写真', r:'しゃしん', k:'사진'}, {c:'음독 명사', j:'習慣', r:'しゅうかん', k:'습관'}, {c:'음독 명사', j:'修理', r:'しゅうり', k:'수리'}, {c:'음독 명사', j:'手術', r:'しゅじゅつ', k:'수술'},
+  {c:'음독 명사', j:'首都', r:'しゅと', k:'수도'}, {c:'음독 명사', j:'小学校', r:'しょうがっこう', k:'초등학교'}, {c:'음독 명사', j:'承知', r:'しょうち', k:'앎, 승낙'}, {c:'음독 명사', j:'省略', r:'しょうりゃく', k:'생략'},
+  {c:'음독 명사', j:'処理', r:'しょり', k:'처리'}, {c:'음독 명사', j:'申請', r:'しんせい', k:'신청'}, {c:'음독 명사', j:'新聞社', r:'しんぶんしゃ', k:'신문사'},
+  {c:'음독 명사', j:'自信', r:'じしん', k:'자신'}, {c:'음독 명사', j:'自然', r:'しぜん', k:'자연'}, {c:'음독 명사', j:'質問', r:'しつもん', k:'질문'}, {c:'음독 명사', j:'自動車', r:'じどうしゃ', k:'자동차'},
+  {c:'음독 명사', j:'写真家', r:'しゃしんか', k:'사진가'}, {c:'음독 명사', j:'住所', r:'じゅうしょ', k:'주소'}, {c:'음독 명사', j:'授業', r:'じゅぎょう', k:'수업'}, {c:'음독 명사', j:'出席', r:'しゅっせき', k:'출석'},
+  {c:'음독 명사', j:'寿命', r:'じゅみょう', k:'수명'}, {c:'음독 명사', j:'商業', r:'しょうぎょう', k:'상업'}, {c:'음독 명사', j:'消費', r:'しょうひ', k:'소비'}, {c:'음독 명사', j:'食堂', r:'しょくどう', k:'식당'},
+  {c:'음독 명사', j:'資料', r:'しりょう', k:'자료'}, {c:'음독 명사', j:'身長', r:'しんちょう', k:'신장, 키'}, {c:'음독 명사', j:'人類', r:'じんるい', k:'인류'},
+  // 훈독 명사
+  {c:'훈독 명사', j:'支度', r:'したく', k:'채비, 준비'}, {c:'훈독 명사', j:'品物', r:'しなもの', k:'물품'}, {c:'훈독 명사', j:'字引', r:'じびき', k:'사전'}, {c:'훈독 명사', j:'島', r:'しま', k:'섬'},
+  {c:'훈독 명사', j:'染み', r:'しみ', k:'얼룩'}, {c:'훈독 명사', j:'締め切り', r:'しめきり', k:'마감'}, {c:'훈독 명사', j:'職場', r:'しょくば', k:'직장'},
+  // 동사
+  {c:'동사', j:'探す', r:'さがす', k:'찾다'}, {c:'동사', j:'刺す', r:'さす', k:'찌르다'}, {c:'동사', j:'触る', r:'さわる', k:'만지다'}, {c:'동사', j:'死ぬ', r:'しぬ', k:'죽다'},
+  {c:'동사', j:'閉まる', r:'しまる', k:'닫히다'}, {c:'동사', j:'しゃべる', r:'しゃべる', k:'말하다, 이야기하다'}, {c:'동사', j:'信じる', r:'しんじる', k:'믿다'}, {c:'동사', j:'すぐれる', r:'すぐれる', k:'뛰어나다'},
+  {c:'동사', j:'滑る', r:'すべる', k:'미끄러지다'}, {c:'동사', j:'座る', r:'すわる', k:'앉다'}, {c:'동사', j:'育てる', r:'そだてる', k:'양육하다, 키우다'},
+  {c:'동사', j:'咲く', r:'さく', k:'꽃이 피다'}, {c:'동사', j:'差す', r:'さす', k:'우산을 쓰다'}, {c:'동사', j:'叱る', r:'しかる', k:'혼내다'}, {c:'동사', j:'しびれる', r:'しびれる', k:'저리다'},
+  {c:'동사', j:'閉める', r:'しめる', k:'닫다'}, {c:'동사', j:'調べる', r:'しらべる', k:'조사하다'}, {c:'동사', j:'吸う', r:'すう', k:'들이마시다'}, {c:'동사', j:'進む', r:'すすむ', k:'나아가다'},
+  {c:'동사', j:'住む', r:'すむ', k:'살다'}, {c:'동사', j:'接する', r:'せっする', k:'접하다'},
+  {c:'동사', j:'叫ぶ', r:'さけぶ', k:'외치다'}, {c:'동사', j:'騒ぐ', r:'さわぐ', k:'떠들다'}, {c:'동사', j:'沈む', r:'しずむ', k:'가라앉다'}, {c:'동사', j:'絞る', r:'しぼる', k:'짜다, 조이다'},
+  {c:'동사', j:'占める', r:'しめる', k:'차지하다'}, {c:'동사', j:'知る', r:'しる', k:'알다'}, {c:'동사', j:'過ぎる', r:'すぎる', k:'지나가다, 지나치다'}, {c:'동사', j:'捨てる', r:'すてる', k:'버리다'},
+  {c:'동사', j:'済む', r:'すむ', k:'끝나다, 완료되다, 해결되다'}, {c:'동사', j:'育つ', r:'そだつ', k:'자라다'},
+  // い형용사
+  {c:'い형용사', j:'険しい', r:'けわしい', k:'험하다'}, {c:'い형용사', j:'細かい', r:'こまかい', k:'잘다, 상세하다'}, {c:'い형용사', j:'寒い', r:'さむい', k:'춥다'}, {c:'い형용사', j:'少ない', r:'すくない', k:'적다'},
+  {c:'い형용사', j:'濃い', r:'こい', k:'진하다'}, {c:'い형용사', j:'怖い', r:'こわい', k:'무섭다'}, {c:'い형용사', j:'親しい', r:'したしい', k:'친하다'}, {c:'い형용사', j:'すごい', r:'すごい', k:'엄청나다'},
+  {c:'い형용사', j:'恋しい', r:'こいしい', k:'그립다'}, {c:'い형용사', j:'寂しい', r:'さびしい', k:'외롭다, 쓸쓸하다'}, {c:'い형용사', j:'白い', r:'しろい', k:'희다'}, {c:'い형용사', j:'涼しい', r:'すずしい', k:'시원하다'},
+  // な형용사
+  {c:'な형용사', j:'自由だ', r:'じゆうだ', k:'자유롭다'}, {c:'な형용사', j:'主要だ', r:'しゅようだ', k:'주요하다'}, {c:'な형용사', j:'真剣だ', r:'しんけんだ', k:'진지하다'},
+  {c:'な형용사', j:'十分だ', r:'じゅうぶんだ', k:'충분하다'}, {c:'な형용사', j:'上手だ', r:'じょうずだ', k:'잘하다, 능숙하다'}, {c:'な형용사', j:'親切だ', r:'しんせつだ', k:'친절하다'},
+  {c:'な형용사', j:'重要だ', r:'じゅうようだ', k:'중요하다'}, {c:'な형용사', j:'丈夫だ', r:'じょうぶだ', k:'튼튼하다'},
+  // 부사 및 기타
+  {c:'부사 및 기타', j:'大体', r:'だいたい', k:'대개, 대체로'}, {c:'부사 및 기타', j:'たいへん', r:'たいへん', k:'매우, 대단히'}, {c:'부사 및 기타', j:'たっぷり', r:'たっぷり', k:'듬뿍, 충분히'},
+  {c:'부사 및 기타', j:'たまたま', r:'たまたま', k:'마침, 간혹'}, {c:'부사 및 기타', j:'たいてい', r:'たいてい', k:'대강, 대부분, 대체로'}, {c:'부사 및 기타', j:'たくさん', r:'たくさん', k:'많이'},
+  {c:'부사 및 기타', j:'たびたび', r:'たびたび', k:'자주'}, {c:'부사 및 기타', j:'だんだん', r:'だんだん', k:'점점'}, {c:'부사 및 기타', j:'だいぶ', r:'だいぶ', k:'꽤, 상당히'},
+  {c:'부사 및 기타', j:'多少', r:'たしょう', k:'다소, 약간'}, {c:'부사 및 기타', j:'たぶん', r:'たぶん', k:'아마'},
+  // 가타카나어
+  {c:'가타카나어', j:'スイッチ', r:'スイッチ', k:'스위치'}, {c:'가타카나어', j:'スーパー', r:'スーパー', k:'슈퍼마켓'}, {c:'가타카나어', j:'スケジュール', r:'スケジュール', k:'스케줄, 일정, 계획'}, {c:'가타카나어', j:'ストーブ', r:'ストーブ', k:'스토브'},
+  {c:'가타카나어', j:'スーツ', r:'スーツ', k:'슈트, 양복'}, {c:'가타카나어', j:'スカート', r:'スカート', k:'스커트, 치마'}, {c:'가타카나어', j:'ステーキ', r:'ステーキ', k:'스테이크'},
+  {c:'가타카나어', j:'スーツケース', r:'スーツケース', k:'슈트 케이스'}, {c:'가타카나어', j:'スクリーン', r:'スクリーン', k:'스크린'}, {c:'가타카나어', j:'ステレオ', r:'ステレオ', k:'스테레오'}
+];
+
+
+const kanjiInfo = {
+  '指':'손 수(扌) + 뜻 지시/가리키다. 손가락으로 가리킨다고 외우기.',
+  '示':'보일 시. 제단 모양에서 신에게 보이는 표시 → 보이다/나타내다.',
+  '自':'스스로 자. 원래 코 모양 → 자기 자신을 가리킴.',
+  '身':'몸 신. 몸의 옆모습 → 몸/신장.',
+  '時':'날 일(日) + 절/규칙 寺. 해가 움직이는 기준 → 시간/시대.',
+  '代':'사람 인(亻) + 바꿀 대. 사람이 세대를 바꾼다 → 시대/대신하다.',
+  '実':'집 면(宀) 아래 알찬 내용 → 실제/열매/실력의 실.',
+  '力':'힘 력. 팔에 힘주는 모양 → 힘/능력.',
+  '市':'시장 시. 사람이 모이는 시장/도시.',
+  '民':'백성 민. 사람들 → 시민/국민.',
+  '社':'보일 시(礻) + 흙 토(土). 신을 모신 곳/모임 → 회사/사회.',
+  '長':'길 장/어른 장. 길다 → 우두머리/사장.',
+  '渋':'물 수(氵) + 멈칫한 모양. 물 흐름이 막히는 느낌 → 정체/떫다.',
+  '滞':'물 수(氵) + 머무를 대. 흐르지 못하고 머묾 → 정체.',
+  '宿':'집 면(宀) + 사람. 집에 머무름 → 숙박/숙제.',
+  '題':'머리 혈(頁) 계열. 머리에 올리는 제목/문제 → 제목/숙제.',
+  '出':'나갈 출. 산/풀 밖으로 나오는 모양 → 출발/출장/출석.',
+  '張':'활 궁(弓) + 길 장(長). 활시위를 길게 당김 → 펴다/출장의 장.',
+  '紹':'실 사(糸) + 부를 소(召). 실로 이어 소개함 → 소개.',
+  '介':'사이에 낀 사람 모양 → 사이에 끼다/소개하다.',
+  '小':'작을 소. 작은 점들 → 작다/소설/초등학교.',
+  '説':'말씀 언(言) + 기쁠 열/설명. 말로 풀어 설명 → 소설/설명.',
+  '商':'상업 상. 물건을 사고파는 일 → 상품/상업.',
+  '品':'입 구(口) 3개. 여러 물건/품질 → 상품/식료품/품물.',
+  '植':'나무 목(木) + 곧을 직(直). 나무를 곧게 심다 → 식물.',
+  '物':'소 우(牛) + 말 물(勿). 여러 사물/물건.',
+  '進':'쉬엄쉬엄 갈 착(辶) + 새 추(隹). 앞으로 나아감 → 진학/진행.',
+  '学':'배울 학. 아이가 집에서 배움 → 학교/진학.',
+  '心':'마음 심. 심장 모양 → 마음/걱정.',
+  '配':'술 유(酉) + 나눌 배. 알맞게 나누다 → 배려/걱정의 配.',
+  '辞':'말씀 언(言) 계열. 말/글을 모은 것 → 사전/사직.',
+  '書':'쓸 서. 붓으로 쓰는 것 → 책/사전.',
+  '地':'흙 토(土) + 어조사 야(也). 땅 → 지진.',
+  '震':'비 우(雨) + 진동할 진(辰). 비/천둥처럼 흔들림 → 지진.',
+  '失':'잃을 실. 손에서 빠져나감 → 실패/실업.',
+  '業':'업 업. 일/직업 → 수업/상업/실업.',
+  '典':'책/법전 전. 책상 위 책 → 사전/고전.',
+  '会':'모일 회. 사람이 모임 → 회사/사회.',
+  '集':'새 추(隹) + 나무 목(木). 새가 나무에 모임 → 집중.',
+  '中':'가운데 중. 가운데를 꿰뚫음 → 집중/중요.',
+  '泊':'물 수(氵) + 흰 백(白). 물가에 머무름 → 숙박.',
+  '発':'필 발. 밖으로 터져 나감 → 출발.',
+  '正':'바를 정. 바르게 서다 → 정월.',
+  '月':'달 월. 달 모양 → 월/정월.',
+  '招':'손 수(扌) + 부를 소(召). 손짓해 부름 → 초대.',
+  '待':'걸을 척(彳) + 절 사(寺). 멈춰 기다림 → 초대/기다리다.',
+  '将':'장차 장. 앞으로의 일 → 장래.',
+  '来':'올 래. 오다 → 장래.',
+  '食':'먹을 식. 음식 그릇 모양 → 식사/식품.',
+  '料':'쌀 미(米) + 말 두(斗). 재료를 재다 → 재료/요금/자료.',
+  '人':'사람 인. 사람이 서 있는 모양.',
+  '口':'입 구. 입 모양 → 인구.',
+  '新':'새 신. 나무를 베어 새로 만듦 → 신문/신문사.',
+  '聞':'문 문(門) + 귀 이(耳). 문 사이로 듣다 → 듣다/신문.',
+  '事':'일 사. 손에 일을 쥔 모양 → 사정.',
+  '情':'마음 심(忄) + 푸를 청(青). 마음 상태 → 사정/감정.',
+  '姿':'여자 녀(女) + 다음 차(次). 몸가짐/모습 → 자세.',
+  '勢':'힘 력(力). 힘의 흐름/기세 → 자세/형세.',
+  '敗':'칠 복(攵) + 조개 패(貝). 쳐서 무너짐 → 실패.',
+  '転':'수레 차(車) + 구름 운(云). 수레가 굴러감 → 자전거.',
+  '車':'수레 차. 바퀴 달린 수레 → 차/자전거.',
+  '写':'베낄 사. 베껴 옮기다 → 사진.',
+  '真':'참 진. 참된 모습 → 사진/진짜.',
+  '習':'깃 우(羽) + 흰 백(白). 날갯짓을 반복 연습 → 습관.',
+  '慣':'마음 심(忄) + 꿸 관(貫). 몸에 밴 마음 → 습관.',
+  '修':'사람 인(亻) + 닦을 수. 고쳐 닦다 → 수리.',
+  '理':'구슬 옥(王) + 마을 리(里). 결을 다스림 → 이치/수리/처리.',
+  '手':'손 수. 손 모양 → 수술.',
+  '術':'길 행(行) 계열. 기술/방법 → 수술.',
+  '首':'머리 수. 머리 모양 → 수도.',
+  '都':'고을 읍(阝) + 자 도. 큰 도시 → 수도.',
+  '校':'나무 목(木) + 사귈 교(交). 학교 건물 → 학교.',
+  '承':'받들 승. 두 손으로 받음 → 승낙/알겠습니다.',
+  '知':'화살 시(矢) + 입 구(口). 정확히 말해 알다 → 지식/승낙.',
+  '省':'눈 목(目) + 적을 소(少). 자세히 살피거나 줄이다 → 생략.',
+  '略':'밭 전(田) + 각각 각(各). 간단히 줄임/전략 → 생략.',
+  '処':'머무를 처. 일을 처리하는 곳 → 처리.',
+  '申':'펼 신. 말/서류를 펴서 말함 → 신청.',
+  '請':'말씀 언(言) + 푸를 청(青). 말로 부탁함 → 신청.',
+  '然':'그러할 연. 불(火) 위에 태우는 모양 → 자연/그렇다.',
+  '質':'조개 패(貝). 값어치/내용 → 질문/성질.',
+  '問':'문 문(門) + 입 구(口). 문 앞에서 묻다 → 질문.',
+  '動':'힘 력(力) + 무거울 중(重). 힘으로 움직임 → 자동차.',
+  '家':'집 면(宀) + 돼지 시(豕). 집/전문가 → 사진가.',
+  '住':'사람 인(亻) + 주인 주(主). 사람이 머무름 → 살다/주소.',
+  '所':'곳 소. 장소 → 주소.',
+  '授':'손 수(扌) + 받을 수(受). 손으로 주고받음 → 수업.',
+  '席':'자리 석. 자리 → 출석.',
+  '寿':'목숨 수. 오래 삶 → 수명.',
+  '命':'목숨 명. 명령/생명 → 수명.',
+  '消':'물 수(氵) + 작을 소(肖). 물처럼 사라짐 → 소비.',
+  '費':'조개 패(貝). 돈이 나감 → 소비.',
+  '堂':'흙 토(土) + 높을 상(尚). 큰 건물/홀 → 식당.',
+  '資':'조개 패(貝) + 다음 차(次). 재물/자료 → 자료.',
+  '類':'머리 혈(頁) 계열. 종류/무리 → 인류.',
+  '支':'손에 가지를 든 모양 → 지탱/준비의 支.',
+  '度':'집 엄(广) + 손. 정도/법도 → 지度.',
+  '字':'집 면(宀) + 아이 자(子). 집에서 글자를 배우다 → 글자.',
+  '引':'활 궁(弓) + 당기는 선. 끌다/찾아보다 → 字引.',
+  '島':'새 조(鳥) + 산 산(山). 바다 위 새가 쉬는 산 → 섬.',
+  '染':'물 수(氵) + 나무 목(木). 물들다/얼룩.',
+  '締':'실 사(糸) + 임금 제(帝). 실로 꽉 묶다 → 마감/조이다.',
+  '切':'칼 도(刀) + 일곱 칠(七). 칼로 자르다 → 마감/자르다.',
+  '職':'귀 이(耳) 계열 + 소리. 맡은 일/직업 → 직장.',
+  '場':'흙 토(土) + 햇볕 양(昜). 넓은 장소 → 장소/직장.',
+  '探':'손 수(扌) + 깊을 심. 손으로 깊이 뒤져 찾다.',
+  '刺':'칼 도(刂). 칼/가시로 찌르다.',
+  '触':'뿔 각(角) + 벌레 충(虫). 닿아 느끼다 → 만지다.',
+  '死':'죽을 사. 죽은 사람 모양.',
+  '閉':'문 문(門) + 재주 재(才). 문을 닫다.',
+  '信':'사람 인(亻) + 말씀 언(言). 사람의 말을 믿다.',
+  '滑':'물 수(氵) + 뼈 골(骨). 물기 때문에 미끄럽다.',
+  '座':'집 엄(广) + 앉은 사람들. 앉는 자리 → 앉다.',
+  '育':'고기 육(月) + 아이. 아이가 자라다/키우다.',
+  '咲':'입 구(口) + 웃을 소. 꽃이 웃듯 피다.',
+  '差':'공구 공(工) + 손. 손으로 뻗다 → 우산을 쓰다/차이.',
+  '叱':'입 구(口) + 꾸짖는 소리. 입으로 꾸짖다.',
+  '調':'말씀 언(言) + 두루 주(周). 말/상태를 맞추다 → 조사하다.',
+  '吸':'입 구(口) + 미칠 급(及). 입으로 빨아들이다.',
+  '接':'손 수(扌) + 이을 접. 손으로 이어 닿다 → 접하다.',
+  '叫':'입 구(口) + 부르짖을 규. 입으로 외치다.',
+  '騒':'말 마(馬) + 소란. 말이 날뛰듯 시끄럽다.',
+  '沈':'물 수(氵). 물속으로 가라앉다.',
+  '絞':'실 사(糸) + 사귈 교(交). 실을 비틀어 짜다/조이다.',
+  '占':'점칠 점. 자리를 차지하다/점치다.',
+  '過':'쉬엄쉬엄 갈 착(辶). 지나가다/지나치다.',
+  '捨':'손 수(扌) + 집 사(舎). 손에서 놓아 버리다.',
+  '済':'물 수(氵) + 가지런할 제(斉). 정리되어 끝나다/해결되다.',
+  '険':'언덕 부(阝) + 다 검. 험한 언덕 → 험하다.',
+  '細':'실 사(糸) + 밭 전(田). 실처럼 가늘고 자세함.',
+  '寒':'집 면(宀) 안에 얼음/짚. 집 안도 차가움 → 춥다.',
+  '少':'적을 소. 작은 것/적다.',
+  '濃':'물 수(氵) + 농사 농(農). 물맛/색이 진하다.',
+  '怖':'마음 심(忄) + 베 포(布). 마음이 두려움 → 무섭다.',
+  '親':'볼 견(見) + 나무. 가까이 보살피는 사람 → 친하다/부모.',
+  '恋':'마음 심(心). 마음이 끌림/그리움.',
+  '寂':'집 면(宀) + 쓸쓸할 숙. 조용하고 쓸쓸함.',
+  '白':'흰 백. 밝고 흰 모양.',
+  '涼':'물 수(氵) + 서울 경(京). 물기처럼 서늘함 → 시원하다.',
+  '由':'이유 유. 밭에서 싹이 난 모양 → 이유/자유.',
+  '主':'주인 주. 촛불 심지 모양 → 중심/주요.',
+  '要':'허리 요. 중요한 중심 → 필요/중요.',
+  '剣':'칼 도(刂). 칼처럼 날카롭고 진지함 → 真剣.',
+  '十':'열 십. 열/충분히의 十分.',
+  '分':'칼 도(刀) + 나눌 팔(八). 나누다/부분/분.',
+  '上':'위 상. 기준선 위 → 잘하다의 上手.',
+  '丈':'길이 장. 키/길이 → 丈夫.',
+  '夫':'남편 부/사람. 큰 사람 모양 → 丈夫 튼튼함.',
+  '大':'큰 대. 사람이 팔 벌린 모양.',
+  '体':'몸 체. 사람 인(亻) + 근본 본(本) → 몸/대체.',
+  '多':'많을 다. 고기/달 모양 두 개 → 많다.',
+  '多':'많을 다. 많이.',
+  '少':'적을 소. 적다/조금.'
+};
+
+const kanjiTitle={"指": "가리킬 지 / 손가락 지", "示": "보일 시", "自": "스스로 자", "身": "몸 신", "時": "때 시", "代": "대신할 대 / 시대 대", "実": "열매 실 / 실제 실", "力": "힘 력", "市": "시장 시", "民": "백성 민", "社": "모일 사 / 회사 사", "長": "길 장 / 우두머리 장", "渋": "떫을 삽 / 막힐 삽", "滞": "막힐 체 / 머무를 체", "宿": "잘 숙 / 묵을 숙", "題": "제목 제 / 문제 제", "出": "날 출 / 나갈 출", "張": "베풀 장 / 펼 장", "紹": "이을 소 / 소개할 소", "介": "끼일 개 / 소개할 개", "小": "작을 소", "説": "말씀 설 / 설명할 설", "商": "장사 상", "品": "물건 품", "植": "심을 식", "物": "물건 물", "進": "나아갈 진", "学": "배울 학", "心": "마음 심", "配": "나눌 배 / 배치할 배", "辞": "말씀 사 / 사전 사", "書": "글 서 / 쓸 서", "地": "땅 지", "震": "진동할 진", "失": "잃을 실", "業": "업 업 / 일 업", "典": "법 전 / 책 전", "会": "모일 회", "集": "모을 집", "中": "가운데 중", "泊": "묵을 박", "発": "필 발 / 출발할 발", "正": "바를 정", "月": "달 월", "招": "부를 초 / 손짓할 초", "待": "기다릴 대", "将": "장차 장", "来": "올 래", "食": "먹을 식", "料": "헤아릴 료 / 재료 료", "人": "사람 인", "口": "입 구", "新": "새 신", "聞": "들을 문", "事": "일 사", "情": "뜻 정 / 마음 정", "姿": "모양 자 / 자세 자", "勢": "기세 세", "敗": "패할 패", "転": "구를 전 / 바뀔 전", "車": "수레 차", "写": "베낄 사 / 찍을 사", "真": "참 진", "習": "익힐 습", "慣": "익숙할 관", "修": "닦을 수 / 고칠 수", "理": "다스릴 리 / 이치 리", "手": "손 수", "術": "재주 술 / 기술 술", "首": "머리 수", "都": "도읍 도", "校": "학교 교", "承": "이을 승 / 받을 승", "知": "알 지", "省": "살필 성 / 덜 생", "略": "간략할 략", "処": "곳 처 / 처리할 처", "申": "펼 신 / 아뢸 신", "請": "청할 청", "然": "그러할 연", "質": "바탕 질 / 물을 질", "問": "물을 문", "動": "움직일 동", "家": "집 가 / 전문가 가", "住": "살 주", "所": "곳 소", "授": "줄 수 / 가르칠 수", "席": "자리 석", "寿": "목숨 수 / 오래 살 수", "命": "목숨 명", "消": "사라질 소", "費": "쓸 비 / 비용 비", "堂": "집 당 / 큰 건물 당", "資": "재물 자 / 자료 자", "類": "무리 류 / 종류 류", "支": "지탱할 지", "度": "법도 도 / 정도 도", "字": "글자 자", "引": "끌 인", "島": "섬 도", "染": "물들 염", "締": "맺을 체 / 조일 체", "切": "자를 절 / 끊을 절", "職": "직분 직 / 직업 직", "場": "마당 장 / 장소 장", "探": "찾을 탐", "刺": "찌를 자", "触": "닿을 촉", "死": "죽을 사", "閉": "닫을 폐", "信": "믿을 신", "滑": "미끄러울 활", "座": "앉을 좌", "育": "기를 육", "咲": "필 소", "差": "다를 차 / 꽂을 차", "叱": "꾸짖을 질", "調": "고를 조 / 조사할 조", "吸": "마실 흡", "接": "이을 접 / 접할 접", "叫": "부르짖을 규", "騒": "떠들 소", "沈": "잠길 침", "絞": "짤 교 / 조일 교", "占": "차지할 점", "過": "지날 과", "捨": "버릴 사", "済": "끝날 제 / 건널 제", "険": "험할 험", "細": "가늘 세", "寒": "찰 한", "少": "적을 소", "濃": "짙을 농", "怖": "두려울 포", "親": "친할 친", "恋": "그리워할 련 / 사랑할 련", "寂": "고요할 적 / 쓸쓸할 적", "白": "흰 백", "涼": "서늘할 량", "由": "말미암을 유", "主": "주인 주", "要": "요긴할 요", "剣": "칼 검", "十": "열 십", "分": "나눌 분", "上": "위 상", "丈": "어른 장 / 길이 장", "夫": "지아비 부", "大": "큰 대", "体": "몸 체", "多": "많을 다"};
+const kanjiRadical={"授": "扌(손수변) ⭐⭐⭐", "指": "扌(손수변) ⭐⭐⭐", "探": "扌(손수변) ⭐⭐⭐", "招": "扌(손수변) ⭐⭐⭐", "接": "扌(손수변) ⭐⭐⭐", "捨": "扌(손수변) ⭐⭐⭐", "渋": "氵(물수변) ⭐⭐⭐", "滞": "氵(물수변) ⭐⭐⭐", "泊": "氵(물수변) ⭐⭐⭐", "消": "氵(물수변) ⭐⭐⭐", "沈": "氵(물수변) ⭐⭐⭐", "済": "氵(물수변) ⭐⭐⭐", "涼": "氵(물수변) ⭐⭐⭐", "濃": "氵(물수변) ⭐⭐⭐", "染": "氵(물수변) ⭐⭐⭐", "滑": "氵(물수변) ⭐⭐⭐", "情": "忄(마음심변) ⭐⭐⭐", "慣": "忄(마음심변) ⭐⭐⭐", "怖": "忄(마음심변) ⭐⭐⭐", "心": "心(마음심) ⭐⭐⭐", "恋": "心(마음심) ⭐⭐⭐", "信": "亻(사람인변) ⭐⭐⭐", "住": "亻(사람인변) ⭐⭐⭐", "修": "亻(사람인변) ⭐⭐⭐", "体": "亻(사람인변) ⭐⭐⭐", "説": "言(말씀언) ⭐⭐⭐", "調": "言(말씀언) ⭐⭐⭐", "請": "言(말씀언) ⭐⭐⭐", "紹": "糸(실사) ⭐⭐⭐", "締": "糸(실사) ⭐⭐⭐", "絞": "糸(실사) ⭐⭐⭐", "細": "糸(실사) ⭐⭐⭐", "聞": "門(문문)+耳(귀이)", "問": "門(문문)+口(입구)", "震": "雨(비우)", "転": "車(수레차)", "費": "貝(조개패/돈)", "資": "貝(조개패/돈)", "質": "貝(조개패/돈)"};
+const kanjiStory={"授": "扌(손) + 受(받다). 손으로 지식이나 물건을 건네줌 → 줄 수, 가르칠 수. 授業은 '가르치는 일'이라서 수업.", "指": "扌(손) + 旨. 손가락으로 방향을 가리킴 → 가리킬 지.", "調": "言(말) + 周(두루). 말이나 상태를 맞춰 살핌 → 조사할 조.", "請": "言(말) + 青. 말로 부탁하거나 신청함 → 청할 청.", "信": "亻(사람) + 言(말). 사람의 말을 믿음 → 믿을 신.", "住": "亻(사람) + 主. 사람이 한곳에 머묾 → 살 주.", "情": "忄(마음) + 青. 마음의 상태 → 마음 정.", "怖": "忄(마음) + 布. 마음이 불안함 → 두려울 포.", "慣": "忄(마음) + 貫. 몸과 마음에 배어 익숙해짐 → 익숙할 관.", "渋": "氵(물) + 막히는 느낌. 흐름이 막힘 → 막힐 삽.", "消": "氵(물) + 肖. 물처럼 사라짐 → 사라질 소.", "沈": "氵(물) + 깊이 가라앉는 모양 → 잠길 침.", "済": "氵(물) + 斉. 정리되어 끝남 → 끝날 제.", "締": "糸(실) + 帝. 실로 꽉 묶음 → 조일 체, 맺을 체.", "絞": "糸(실) + 交. 실을 비틀어 짬 → 짤 교.", "聞": "門(문) + 耳(귀). 문 사이로 듣다 → 들을 문.", "問": "門(문) + 口(입). 문 앞에서 묻다 → 물을 문.", "震": "雨(비) + 辰. 천둥비처럼 흔들림 → 진동할 진.", "転": "車(수레) + 云. 바퀴가 굴러감 → 구를 전.", "写": "모습을 옮겨 적거나 찍는 느낌 → 베낄 사, 찍을 사.", "習": "羽(날개) + 白. 새가 날갯짓을 반복함 → 익힐 습."};
+
+
+function kanjiExplanation(word){
+  const chars = [...word.j].filter(ch => kanjiInfo[ch] || kanjiTitle[ch]);
+  if (!chars.length) return '<b>한자 풀이</b><br>이 단어는 한자 풀이가 없거나 가타카나/히라가나 단어야.';
+  return `<b>${word.j}（${word.r}）</b><br><span class="small">※ 한자 자체 뜻 → 부수/구성 → 암기 풀이 순서로 보기.</span>` +
+    chars.map(ch => {
+      const title = kanjiTitle[ch] || '뜻 정보 보강 예정';
+      const radical = kanjiRadical[ch] || '기본 부수/구성은 아래 풀이 참고';
+      const base = kanjiInfo[ch] || '';
+      const story = kanjiStory[ch] || base;
+      return `<div class="piece"><b style="font-size:24px">${ch}</b>
+      <div><b>한자 자체 뜻</b> : ${title}</div>
+      <div><b>부수/구성</b> : ${radical}</div>
+      <div><b>암기 풀이</b> : ${story}</div></div>`;
+    }).join('');
+}
+
+
+let current = 0;
+let pool = [...words];
+let showWrongOnly = false;
+let showKana = false;
+let done = JSON.parse(localStorage.getItem('n3_done') || '[]');
+let wrong = JSON.parse(localStorage.getItem('n3_wrong') || '[]');
+
+const $ = id => document.getElementById(id);
+const categories = ['전체', ...new Set(words.map(w => w.c))];
+$('category').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+$('tabs').innerHTML = categories.map((c,i) => `<button class="tab ${i===0?'active':''}" data-cat="${c}">${c}</button>`).join('');
+
+function key(w){ return w.c + '|' + w.j + '|' + w.r; }
+function save(){ localStorage.setItem('n3_done', JSON.stringify(done)); localStorage.setItem('n3_wrong', JSON.stringify(wrong)); }
+function filterPool(){
+  hideKana();
+  const cat = $('category').value;
+  pool = words.filter(w => (cat === '전체' || w.c === cat) && (!showWrongOnly || wrong.includes(key(w))));
+  if (pool.length === 0) pool = words.filter(w => cat === '전체' || w.c === cat);
+  current = 0;
+  render();
+}
+function render(){
+  if (!pool.length) return;
+  const w = pool[current];
+  const mode = $('studyMode').value;
+  $('answer').style.display = 'none';
+  $('kanjiHelp').style.display = 'none';
+  $('cardInfo').textContent = `${w.c} / ${current + 1}번째 카드`;
+  if (mode === 'jp-ko') { $('front').textContent = w.j; $('sub').textContent = w.r; $('answer').textContent = w.k; }
+  if (mode === 'ko-jp') { $('front').textContent = w.k; $('sub').textContent = w.r; $('answer').textContent = `${w.j}（${w.r}）`; }
+  if (mode === 'kana-ko') { $('front').textContent = w.r; $('sub').textContent = ''; $('answer').textContent = `${w.j} = ${w.k}`; }
+  $('sub').style.display = (showKana && mode !== 'kana-ko' && $('sub').textContent) ? 'block' : 'none';
+  $('kanaBtn').textContent = showKana ? '히라가나 숨기기' : '히라가나 보기';
+  updateStats(); renderList();
+}
+function updateStats(){
+  $('totalCount').textContent = words.length;
+  $('doneCount').textContent = done.length;
+  $('wrongCount').textContent = wrong.length;
+  $('posCount').textContent = `${current + 1}/${pool.length}`;
+}
+function renderList(){
+  const cat = $('category').value;
+  const list = words.filter(w => cat === '전체' || w.c === cat);
+  $('wordList').innerHTML = list.map(w => {
+    const k = key(w);
+    return `<div class="word ${wrong.includes(k)?'wrong':''} ${done.includes(k)?'done':''}">
+      <div class="kanji">${w.j}</div><div class="reading ${showKana ? '' : 'hidden'}">${w.r}</div><div class="meaning">${w.k}</div><div class="small">${w.c}</div>
+    </div>`;
+  }).join('');
+}
+function hideKana(){ showKana = false; }
+function next(){ hideKana(); current = (current + 1) % pool.length; render(); }
+function addUnique(arr, val){ if (!arr.includes(val)) arr.push(val); }
+
+$('showBtn').onclick = () => $('answer').style.display = 'block';
+$('kanaBtn').onclick = () => { showKana = !showKana; render(); };
+$('kanjiBtn').onclick = () => { $('kanjiHelp').innerHTML = kanjiExplanation(pool[current]); $('kanjiHelp').style.display = $('kanjiHelp').style.display === 'block' ? 'none' : 'block'; };
+$('knowBtn').onclick = () => { const k = key(pool[current]); addUnique(done,k); wrong = wrong.filter(x => x !== k); save(); next(); };
+$('wrongBtn').onclick = () => { addUnique(wrong, key(pool[current])); save(); next(); };
+$('nextBtn').onclick = next;
+$('prevBtn').onclick = () => { hideKana(); current = (current - 1 + pool.length) % pool.length; render(); };
+$('shuffleBtn').onclick = () => { hideKana(); pool.sort(() => Math.random() - 0.5); current = 0; render(); };
+$('wrongOnlyBtn').onclick = () => { showWrongOnly = !showWrongOnly; $('wrongOnlyBtn').textContent = showWrongOnly ? '전체 보기' : '오답만'; filterPool(); };
+$('resetBtn').onclick = () => { if(confirm('회독/오답 기록을 전부 지울까?')) { done=[]; wrong=[]; save(); render(); } };
+$('category').onchange = () => {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.cat === $('category').value));
+  filterPool();
+};
+$('studyMode').onchange = () => { hideKana(); render(); };
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => { $('category').value = t.dataset.cat; document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); t.classList.add('active'); filterPool(); });
+
+let cinema=false;
+let auto=false;
+let timers=[];
+
+function clearTimers(){
+ timers.forEach(t=>clearTimeout(t));
+ timers=[];
+}
+
+$('cinemaBtn').onclick=()=>{
+ cinema=!cinema;
+ document.body.classList.toggle('cinema-mode',cinema);
+ $('cinemaBtn').textContent=cinema?'🎬 집중모드 종료':'🎬 집중모드';
+};
+
+function autoLoop(){
+ if(!auto) return;
+
+ const show=Number($('showSec').value)*1000;
+ const wait=Number($('waitSec').value)*1000;
+
+ hideKana();
+ $('answer').style.display='none';
+ render();
+
+ timers.push(setTimeout(()=>{
+   showKana=true;
+   render();
+
+   timers.push(setTimeout(()=>{
+      $('answer').style.display='block';
+
+      timers.push(setTimeout(()=>{
+         next();
+         autoLoop();
+      },wait));
+
+   },show));
+
+ },show));
+}
+
+$('autoBtn').onclick=()=>{
+ auto=!auto;
+
+ if(auto){
+   $('autoBtn').textContent='자동학습 정지';
+   if(!cinema){
+      cinema=true;
+      document.body.classList.add('cinema-mode');
+      $('cinemaBtn').textContent='🎬 집중모드 종료';
+   }
+   autoLoop();
+ }else{
+   $('autoBtn').textContent='자동학습';
+   clearTimers();
+ }
+};
+
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape' && cinema){
+   cinema=false;
+   document.body.classList.remove('cinema-mode');
+   $('cinemaBtn').textContent='🎬 집중모드';
+ }
+});
+
+
+// v5 집중모드/자동학습 정리
+var autoRunning = false;
+var v5Timers = [];
+function v5ClearTimers(){ v5Timers.forEach(t => clearTimeout(t)); v5Timers = []; }
+function enterCinema(){
+  document.body.classList.add('cinema-mode');
+  if($('cinemaBtn')) $('cinemaBtn').textContent='🎬 집중모드 종료';
+}
+function exitCinema(){
+  document.body.classList.remove('cinema-mode');
+  if($('cinemaBtn')) $('cinemaBtn').textContent='🎬 집중모드';
+  autoRunning=false;
+  if($('autoBtn')) $('autoBtn').textContent='자동학습 시작';
+  v5ClearTimers();
+}
+function v5AutoLoop(){
+  if(!autoRunning || !pool.length) return;
+  const show = Math.max(0.1, Number($('showSec').value || 1)) * 1000;
+  const wait = Math.max(0.1, Number($('waitSec').value || 2)) * 1000;
+  hideKana(); render(); $('answer').style.display='none';
+  v5Timers.push(setTimeout(()=>{
+    if(!autoRunning) return;
+    showKana=true; render();
+    v5Timers.push(setTimeout(()=>{
+      if(!autoRunning) return;
+      $('answer').style.display='block';
+      v5Timers.push(setTimeout(()=>{
+        if(!autoRunning) return;
+        next(); v5AutoLoop();
+      }, wait));
+    }, show));
+  }, show));
+}
+if($('cinemaBtn')) $('cinemaBtn').onclick=()=>{ document.body.classList.contains('cinema-mode') ? exitCinema() : enterCinema(); };
+if($('autoBtn')) $('autoBtn').onclick=()=>{
+  if(!autoRunning){ enterCinema(); autoRunning=true; $('autoBtn').textContent='자동학습 정지'; v5ClearTimers(); v5AutoLoop(); }
+  else { autoRunning=false; $('autoBtn').textContent='자동학습 시작'; v5ClearTimers(); }
+};
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('cinema-mode')) exitCinema(); });
+
+
+// 카테고리별 4지선다 퀴즈
+const quizCategories = ['현재 카테고리', '전체', ...new Set(words.map(w => w.c))];
+if ($('quizCategory')) {
+  $('quizCategory').innerHTML = quizCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+let mqCurrent = null;
+let mqAnswer = '';
+let mqAnswered = false;
+let mqRight = Number(localStorage.getItem('n3_mq_right') || 0);
+let mqWrong = Number(localStorage.getItem('n3_mq_wrong') || 0);
+
+function normText(s){ return String(s).replace(/[（）()・\s,，、]/g,'').trim(); }
+
+function getQuizPool(){
+  let cat = $('quizCategory').value;
+  if(cat === '현재 카테고리') cat = $('category').value;
+  let arr = words.filter(w => cat === '전체' || w.c === cat);
+  // 한자 문제가 필요한 모드에서는 가타카나/히라가나-only를 줄임
+  const type = $('quizType').value;
+  if(type.includes('j')) arr = arr.filter(w => /[\u4e00-\u9faf]/.test(w.j));
+  return arr.length >= 4 ? arr : words.filter(w => /[\u4e00-\u9faf]/.test(w.j));
+}
+
+function pickQuestionText(w,type){
+  if(type === 'j-r') return w.j;
+  if(type === 'r-j') return w.r;
+  if(type === 'j-k') return w.j;
+  if(type === 'k-j') return w.k;
+}
+function pickAnswerText(w,type){
+  if(type === 'j-r') return w.r;
+  if(type === 'r-j') return w.j;
+  if(type === 'j-k') return w.k;
+  if(type === 'k-j') return w.j;
+}
+
+function shuffleArray(arr){
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function makeChoices(pool, answerWord, type){
+  const answer = pickAnswerText(answerWord,type);
+  const answerNorm = normText(answer);
+  let candidates = pool
+    .filter(w => key(w) !== key(answerWord))
+    .map(w => pickAnswerText(w,type))
+    .filter(x => x && normText(x) !== answerNorm);
+
+  // 헷갈리게: 같은 첫 글자/첫 음/같은 카테고리를 약간 우선
+  const hint = normText(answer).slice(0,1);
+  candidates.sort((a,b) => {
+    const ah = normText(a).startsWith(hint) ? -1 : 0;
+    const bh = normText(b).startsWith(hint) ? -1 : 0;
+    return ah - bh || Math.random() - 0.5;
+  });
+
+  const unique = [];
+  for(const c of candidates){
+    if(!unique.some(x => normText(x) === normText(c))) unique.push(c);
+    if(unique.length >= 3) break;
+  }
+  while(unique.length < 3){
+    const r = pickAnswerText(words[Math.floor(Math.random()*words.length)], type);
+    if(r && normText(r) !== answerNorm && !unique.some(x => normText(x) === normText(r))) unique.push(r);
+  }
+  return shuffleArray([answer, ...unique]);
+}
+
+function updateMultiScore(){
+  if($('quizScore')) $('quizScore').textContent = `정답 ${mqRight} / 오답 ${mqWrong}`;
+}
+
+function newMultiQuestion(){
+  const pool = getQuizPool();
+  const type = $('quizType').value;
+  mqCurrent = pool[Math.floor(Math.random()*pool.length)];
+  mqAnswer = pickAnswerText(mqCurrent,type);
+  mqAnswered = false;
+
+  $('multiQuestion').textContent = pickQuestionText(mqCurrent,type);
+  $('multiResult').textContent = '';
+  const choices = makeChoices(pool, mqCurrent, type);
+  $('choiceGrid').innerHTML = choices.map(c => `<button class="choiceBtn" data-choice="${String(c).replaceAll('"','&quot;')}">${c}</button>`).join('');
+
+  document.querySelectorAll('.choiceBtn').forEach(btn => {
+    btn.onclick = () => chooseMultiAnswer(btn);
+  });
+  updateMultiScore();
+}
+
+function chooseMultiAnswer(btn){
+  if(mqAnswered) return;
+  mqAnswered = true;
+  const selected = btn.dataset.choice;
+  const ok = normText(selected) === normText(mqAnswer);
+
+  document.querySelectorAll('.choiceBtn').forEach(b => {
+    if(normText(b.dataset.choice) === normText(mqAnswer)) b.classList.add('correct');
+  });
+
+  if(ok){
+    mqRight++;
+    $('multiResult').textContent = '정답!';
+    $('multiResult').style.color = '#19a974';
+    addUnique(done, key(mqCurrent));
+    wrong = wrong.filter(x => x !== key(mqCurrent));
+  }else{
+    mqWrong++;
+    btn.classList.add('wrong');
+    $('multiResult').textContent = `오답! 정답: ${mqAnswer} / ${mqCurrent.j}（${mqCurrent.r}） = ${mqCurrent.k}`;
+    $('multiResult').style.color = '#ff4b5c';
+    addUnique(wrong, key(mqCurrent));
+  }
+  localStorage.setItem('n3_mq_right', mqRight);
+  localStorage.setItem('n3_mq_wrong', mqWrong);
+  save(); updateStats(); renderList(); updateMultiScore();
+}
+
+if($('startMultiQuiz')) $('startMultiQuiz').onclick = newMultiQuestion;
+if($('nextMultiQuiz')) $('nextMultiQuiz').onclick = newMultiQuestion;
+if($('resetMultiQuiz')) $('resetMultiQuiz').onclick = () => {
+  mqRight = 0; mqWrong = 0;
+  localStorage.setItem('n3_mq_right', 0);
+  localStorage.setItem('n3_mq_wrong', 0);
+  updateMultiScore();
+  $('multiResult').textContent = '점수 초기화됨';
+};
+updateMultiScore();
+
+render();
+</script>
+</body>
+</html>
